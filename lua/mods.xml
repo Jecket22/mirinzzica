@@ -1,9 +1,11 @@
 <Mods LoadCommand = "%xero(function(self)
+	-- send player back to the song wheel if p1/p2 is missing (or quickplay isn't active)
 	if not P1 or not P2 then
 		backToSongWheel('Two Player Mode Required')
 		return
 	end
-
+	-- set plr table just in case
+	plr = {1,2}
 	-- judgment / combo proxies
 	for pn = 1, 2 do
 		setupJudgeProxy(PJ[pn], P[pn]:GetChild('Judgment'), pn)
@@ -13,17 +15,43 @@
 	for pn = 1, #PP do
 		PP[pn]:SetTarget(P[pn])
 		P[pn]:hidden(1)
+		--P[pn]:x(scx) -- uncomment to center the players on file start
+		if pn > 2 then
+			P[pn]:SetAwake(true)
+			P[pn]:SetInputPlayer((pn+1)%2)
+			P[pn]:GetChild('Judgment'):hidden(1)
+			P[pn]:GetChild('Combo'):hidden(1)
+			--PP[pn]:hidden(1) -- uncomment to hide extra players on file start
+			table.insert(plr, pn) -- comment to only apply mods for P1 and P2 on file start
+		end
 	end
-	-- your code goes here here:
 	
+	--front_sprite:SetTexture(front_aft:GetTexture())
+	
+	-- check out the contents of the plugins folder, there are a couple functions you can try!
+	-- some of the frequently-used public plugins have been added too.
+	-- your code goes here:
+	
+	--setdefault {300, 'cmod', 100, 'modtimer', 1, 'dizzyholds'}
+	-- setdefault triggers before set {0, ...}
 	
 end)"
 Type = "ActorFrame"
 ><children>
+	
 	<Layer Type = "ActorProxy" Name = "PC[1]" />
 	<Layer Type = "ActorProxy" Name = "PC[2]" />
 	<Layer Type = "ActorProxy" Name = "PJ[1]" />
 	<Layer Type = "ActorProxy" Name = "PJ[2]" />
+	
 	<Layer Type = "ActorProxy" Name = "PP[1]" />
 	<Layer Type = "ActorProxy" Name = "PP[2]" />
+	<!-- extra players, you can add up to 8 players
+	<Layer Type = "ActorProxy" Name = "PP[3]" />
+	<Layer Type = "ActorProxy" Name = "PP[4]" />
+	-->
+	<!-- AFTs, flip the order to make it a recursive AFT
+	<Layer Type="ActorFrameTexture" InitCommand = "%xero.aft" Name = "front_aft" />
+	<Layer Type="Sprite" InitCommand = "%xero.sprite" Name = "front_aft_sprite" /> 
+	-->
 </children></Mods>

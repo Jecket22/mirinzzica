@@ -1,0 +1,211 @@
+<Plugin Version = "1.0" Author = "Rya" LoadCommand = "%xero(function(self)
+	--[[
+		This plugin is a somewhat large compilation of various helper functions
+		and definemods that might be helpful throughout modding your file.
+		This is a little bloaty though...
+	]]
+	
+	-- # Helper Functions
+	
+	-- Credits to XeroOl
+	-- At any given point, it returns either 1 or -1 at a near-60hz rate.
+	-- You can change the rate by simply passing a number into fliperoo(here).
+	-- Useful if you need a flicker effect inside func/perframes.
+	-- If you want to control percentages of flickering mods
+	-- instead of alternating between 100% and -100%,
+	-- check the flicker.xml plugin!!
+	function fliperoo(rate)
+		if (GAMESTATE:GetSongTime() * (rate or 60)) % 2 < 1 and 1 or -1
+	end
+	-- Example:
+	--[[
+	func {0, 4, function(beat, mods)
+		for pn = 1,2 do
+			mods[pn].drunk = mods[pn].drunk * fliperoo()
+			mods[pn].rotationz = mods[pn].rotationz * fliperoo(10)
+		end
+	end}
+	ease {0, 4, bounce, 100, 'drunk', 15, 'rotationz'}
+	]]
+	
+	-- Equivalent of fliperoo, but instead only returns either 100% or 0%.
+	function truedo(rate)
+		return (GAMESTATE:GetSongTime() * (rate or 60)) % 2 < 1 and 1 or 0
+	end
+	
+	-- Credits to Oatmealine
+	-- 'Mixes' together two eases to create one ease.
+	-- It is NOT flush so mixing linear and outExpo will look awkward
+	-- but it also might be just what you need...!
+	-- Also check out https://gitdab.com/oat/box-of-eases, it's basically an ease visualizer!
+	function mixEase(e1, e2, point)
+		if not point then point = 0.5 end
+		return function(a)
+			if a < point then
+				return e1(a / point) * point
+			else
+				return e2((a - point) / (1 - point)) * (1 - point) + point
+			end
+		end
+	end
+	-- Example:
+	--[[
+	outInExpo = mixEase(outExpo,inExpo)
+	ease {0, 4, outInExpo, 360, 'rotationz'}
+	]]
+	
+	-- Returns the radians of (deg) multiplied by 100.
+	-- This is basically required for the confusionoffset mod, as it uses radians instead of degrees.
+	-- Tip: confusionoffset does not account for holds unless the 'dizzyholds' mod is active (not 0%).
+	function confOff(deg)
+		return math.rad(deg)*100
+	end
+	-- Example:
+	--[[
+	set {0, confOff(45), 'confusionoffset'}
+	set {4, confOff(180), 'confusionoffset'}
+	]]
+	-- Equivalent example without confOff:
+	--[[
+	set {0, 78.539816339745, 'confusionoffset'}
+	set {0, 314.15926535898, 'confusionoffset'}
+	]]
+	
+	-- Adds an additional argument, basically a start-percentage
+	function ease2(t)
+		local beat, len, eas, pn = t[1], t[2], t[3], (t.plr or nil)
+		for j = 4, #t - (pn and 1 or 0), 3 do
+			local from, to, mod = t[j], t[j+1], t[j+2]
+			set {beat, from, mod, plr = pn}
+			ease {beat, len, eas, to, mod, plr = pn}
+		end
+		return ease2
+	end
+	-- Example:
+	--[[
+	ease2 {0, 4, outExpo, 500, 0, 'drunk'}
+	]]
+	-- Equivalent example without ease2:
+	--[[
+	set {0, 500, 'drunk'}
+	ease {0, 4, outExpo, 0, 'drunk'}
+	]]
+	
+	-- Equivalent of ease2, but for add.
+	function add2(t)
+		local beat, len, eas, pn = t[1], t[2], t[3], (t.plr or nil)
+		for j = 4, #t - (pn and 1 or 0), 3 do
+			local from, to, mod = t[j], t[j+1], t[j+2]
+			acc {beat, from, mod, plr = pn}
+			add {beat, len, eas, to, mod, plr = pn}
+		end
+		return add2
+	end
+	-- Example:
+	--[[
+	add2 {0, 4, outExpo, -500, 500, 'drunk'}
+	]]
+	-- Equivalent example without ease2:
+	--[[
+	acc {0, -500, 'drunk'}
+	add {0, 4, outExpo, 500, 'drunk'}
+	]]
+	
+	-- # Definemods
+	
+	-- Sets FOV to 45 for every player, which can be manipulated through the 'fov' mod
+	definemod {'fov', function(a,pn) P[pn]:fov(a) end}
+	setdefault {45, 'fov'}
+	
+	-- Sets a variable that can be controlled through the 'val' mod
+	-- Can be used inside func/perframes as an external value
+	aux {'val'}
+	-- Example:
+	--[[
+	func {0, 4, function(beat,mods)
+		mods[1].rotationz = mods[1].val * 180
+		mods[1].tipsy = mods[1].val * 100
+	end}
+	ease {0, 4, bounce, 1, 'val', plr = 1}
+	--]]
+	
+	-- Credits to mangoafterdawn
+	-- Automatic counter rotation via funny math
+	-- Try combining some values rotx with roty, you'll see it's different with rotationx and rotationy.
+	definemod{'rotx','roty','rotz',function(xDegrees, yDegrees, zDegrees, plr)
+		local function mindf_reverseRotation(angleX, angleY, angleZ)
+			local sinX = math.sin(angleX)
+			local cosX = math.cos(angleX)
+			local sinY = math.sin(angleY)
+			local cosY = math.cos(angleY)
+			local sinZ = math.sin(angleZ)
+			local cosZ = math.cos(angleZ)
+			return { math.atan2(-cosX*sinY*sinZ-sinX*cosZ,cosX*cosY),
+					math.asin(-cosX*sinY*cosZ+sinX*sinZ),
+					math.atan2(-sinX*sinY*cosZ-cosX*sinZ,cosY*cosZ) }
+		end
+		local DEG_TO_RAD = math.pi / 180
+		local angles = mindf_reverseRotation(xDegrees * DEG_TO_RAD, yDegrees * DEG_TO_RAD, zDegrees * DEG_TO_RAD)
+		local rotationx,rotationy,rotationz=
+			xDegrees,
+			yDegrees,
+			zDegrees
+		local confusionxoffset,confusionyoffset,confusionzoffset=
+			(angles[1]*100),
+			(angles[2]*100),
+			(angles[3]*100)
+
+		return rotationx,rotationy,rotationz,confusionxoffset,confusionyoffset,confusionzoffset
+	end,
+	'rotationx','rotationy','rotationz','confusionxoffset','confusionyoffset','confusionzoffset'
+	}
+	
+	-- Sets the vanish-point for any given axis for the players
+	definemod {'vanishx', 'vanishy', function(x,y,pn)
+		P[pn]:SetVanishPoint(x,y)
+	end}
+	
+	-- Credits to XeroOl
+	-- Adds column-specific rotationx/z.
+	-- rotationy is not added here because you can simply use confusionyoffset%.
+	for col = 0, 3 do
+		definemod {'rotationx'..col, function(p)
+			if p % 360 == 0 then return 0, 0, 0, 0 end
+			if p % 180 == 0 then return 100, 0, 0, 0 end
+			local theta = p * math.pi / 180 return 50 - 50 * math.cos(theta), 900, -212.5, 1000 * math.sin(theta) end,
+		'reverse'..col, 'zigzagzperiod'..col, 'zigzagzoffset'..col, 'zigzagz'..col}
+		definemod {'rotationz'..col, function(p)
+			if p % 360 == 0 then return 0, 0, 0, 0 end
+			if p % 180 == 0 then return 100, 0, 0, 0 end
+			local theta = p * math.pi / 180 return 50 - 50 * math.cos(theta), 900, -212.5, 1000 * math.sin(theta) end,
+		'reverse'..col, 'zigzagperiod'..col, 'zigzagoffset'..col, 'zigzag'..col}
+	end
+	-- Example:
+	--[[
+		ease {0, 4, outQuint, 180, 'rotationx1', -180, 'rotationx2'}
+	]]
+	
+	-- Credits to HeySora
+	-- It's basically stealth, but it doesn't transition to white 50% in
+	-- THIS OVERRIDES ARROW GRADIENTS, IF YOU NEED TO USE THOSE,
+	-- YOU PROBABLY WANT TO REMOVE THIS MOD THEN.
+	definemod {'alpha', function(val,pn)
+		for col = 0,3 do
+			P[pn]:SetNumArrowGradientPoints(col, 1)
+			P[pn]:SetArrowGradientColor(0, col, 1, 1, 1, val/100)
+		end
+		return val
+	end}
+	setdefault {100, 'alpha'}
+	-- Example:
+	--[[
+		ease {0, 8, tri, 0, 'alpha'}
+	]]
+	
+	-- Adds zoomx/y/z on top of it using addzoomx/y/z
+	definemod {'addzoomx', 100, 'zoomx'}
+	definemod {'addzoomy', 100, 'zoomy'}
+	definemod {'addzoomz', 100, 'zoomz'}
+	-- 100 addzoomx is the equivalent of 200 zoomx
+	
+end)"/>
