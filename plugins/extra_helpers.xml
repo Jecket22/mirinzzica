@@ -15,7 +15,7 @@
 	-- instead of alternating between 100% and -100%,
 	-- check the flicker.xml plugin!!
 	function fliperoo(rate)
-		if (GAMESTATE:GetSongTime() * (rate or 60)) % 2 < 1 and 1 or -1
+		return (GAMESTATE:GetSongTime() * (rate or 60)) % 2 < 1 and 1 or -1
 	end
 	-- Example:
 	--[[
