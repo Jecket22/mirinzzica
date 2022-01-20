@@ -51,6 +51,6 @@ Type = "ActorFrame"
 	-->
 	<!-- AFTs, flip the order to make it a recursive AFT
 	<Layer Type="ActorFrameTexture" InitCommand = "%xero.aft" Name = "front_aft" />
-	<Layer Type="Sprite" InitCommand = "%xero.sprite" Name = "front_aft_sprite" /> 
+	<Layer Type="Sprite" InitCommand = "%xero.sprite" Name = "front_sprite" /> 
 	-->
 </children></Mods>
