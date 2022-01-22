@@ -189,12 +189,11 @@
 	-- It's basically stealth, but it doesn't transition to white 50% in
 	-- THIS OVERRIDES ARROW GRADIENTS, IF YOU NEED TO USE THOSE,
 	-- YOU PROBABLY WANT TO REMOVE THIS MOD THEN.
-	definemod {'alpha', function(val,pn)
+	definemod {'alpha', function(a,pn)
 		for col = 0,3 do
 			P[pn]:SetNumArrowGradientPoints(col, 1)
-			P[pn]:SetArrowGradientColor(0, col, 1, 1, 1, val/100)
+			P[pn]:SetArrowGradientColor(0, col, 1, 1, 1, a/100)
 		end
-		return val
 	end}
 	setdefault {100, 'alpha'}
 	-- Example:
