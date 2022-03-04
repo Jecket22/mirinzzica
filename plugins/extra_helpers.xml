@@ -74,7 +74,7 @@
 	-- Adds an additional argument, basically a start-percentage
 	function ease2(t)
 		local beat, len, eas, pn = t[1], t[2], t[3], (t.plr or nil)
-		for j = 4, #t - (pn and 1 or 0), 3 do
+		for j = 4, #t, 3 do
 			local from, to, mod = t[j], t[j+1], t[j+2]
 			set {beat, from, mod, plr = pn}
 			ease {beat, len, eas, to, mod, plr = pn}
@@ -94,7 +94,7 @@
 	-- Equivalent of ease2, but for add.
 	function add2(t)
 		local beat, len, eas, pn = t[1], t[2], t[3], (t.plr or nil)
-		for j = 4, #t - (pn and 1 or 0), 3 do
+		for j = 4, #t, 3 do
 			local from, to, mod = t[j], t[j+1], t[j+2]
 			acc {beat, from, mod, plr = pn}
 			add {beat, len, eas, to, mod, plr = pn}
